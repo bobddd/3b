@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+
+<body style="background-color:#e0fffe;">
+
+<canvas id="myCanvas" onload = 'move()' onclick = "clickfunc()" width="500" height="500" style=" padding-left: 0;
+	
+    margin-left: auto;
+    margin-right: auto;
+	margin-top: 0px;
+    display: block;border:2px solid black;">
+</canvas>
+
+</body>
+
+<script>
+
+var canvas = document.getElementById("myCanvas");
+var ctx = canvas.getContext("2d");
+
+Math.dist=function(x1,y1,x2,y2){ 
+  if(!x2) x2=0; 
+  if(!y2) y2=0;
+  return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)); 
+}
+function randInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+var fps = 60;
+var rrate = Math.round(1000/fps);
+var myVar = setInterval(move,rrate);
+
+var body = function(x,y,mass,vix,viy,color) {
+this.id=bodyA.length; 
+
+this.x=x; 
+this.y=y;
+this.vix=vix;
+this.viy=viy;
+this.vx=vix;
+this.vy=viy;
+
+this.mass=mass; 
+this.color=color;
+
+this.path = [];
+}
+
+body.prototype.drawL = function() {
+	this.path.push(this.x);
+	this.path.push(this.y);
+	ctx.strokeStyle=this.color; ctx.lineWidth=2;
+	//for (let i = 0; i < this.path.length; i+=2){
+	//	ctx.fillStyle=this.color; 
+	//	ctx.fillRect(this.path[i]-bx,this.path[i+1]-by,2,2);
+	//}
+	if (this.path.length>0){
+		ctx.beginPath();
+		ctx.moveTo(this.path[0]-bx,this.path[1]-by);
+		for (let i = 0; i < this.path.length; i+=2){
+			ctx.lineTo(this.path[i]-bx, this.path[i+1]-by);
+		}
+	}
+	
+	ctx.stroke();
+	ctx.lineWidth=0;
+}
+
+body.prototype.draw = function() {
+ctx.strokeStyle="black"; ctx.lineWidth=2;
+ctx.beginPath(); 
+ctx.arc(this.x-bx, this.y-by, 3+3*Math.log10(this.mass), 0, 2 * Math.PI);
+ctx.fillStyle=this.color; ctx.fill();
+ctx.stroke();
+}
+var bodyA = [];
+
+//var body = function(x,y,mass,vix,viy,color) {
+bodyA.push(new body(250,250,1000,0,0,"red"));
+bodyA.push(new body(330,200,1,-2,-3,"cyan"));
+bodyA.push(new body(100,100,1,1,-1,"yellow"));
+bodyA.push(new body(100,200,20,2,-1,"orange"));
+//bodyA.push(new body(700,600,100,-2,-1,"purple"));
+//bodyA.push(new body(200,600,300,2,-2,"gray"));
+
+
+var dist = 0; var force = 0; var deg = 0; var fx = 0; var fy = 0; var timer=0;
+var bx = 0; var by = 0; var bxM=bx; var byM=by; var zin=0; var zout=0; var zfac=0.05;
+var cfocus=0;
+function move() {
+ctx.fillStyle="white";
+ctx.fillRect(0,0,10000,10000);
+
+if (cfocus!=-1){
+	bxM=bodyA[cfocus].x-250;
+	byM=bodyA[cfocus].y-250;
+}
+
+if (zout==1){ctx.scale(1-zfac,1-zfac);}
+if (zin==1){ctx.scale(1+zfac,1+zfac);}
+//ctx.translate(-0.001,0);
+if (bx < bxM){if (bxM - bx <= 0.01){bx = bxM;}else{bx+=(bxM-bx)/(5);}}	
+if (bx > bxM){if (bx - bxM <= 0.01){bx = bxM;}else{bx-=(bx-bxM)/(5);}}
+if (by < byM){if (byM - by <= 0.01){by = byM;}else{by+=(byM-by)/(5);}}	
+if (by > byM){if (by - byM <= 0.01){by = byM;}else{by-=(by-byM)/(5);}}
+
+for(var i = 0; i < bodyA.length; i++) {bodyA[i].drawL();}
+
+for(var i = 0; i < bodyA.length; i++) { 
+	bodyA[i].x+=bodyA[i].vx; bodyA[i].y+=bodyA[i].vy; 
+	bodyA[i].draw();
+		
+	for(var z = 0; z < bodyA.length; z++) {
+		if (i!=z){
+			//Distance
+			dist=Math.dist(bodyA[i].x,bodyA[i].y,bodyA[z].x,bodyA[z].y);
+			
+			//Force
+			force = 1*(bodyA[i].mass*bodyA[z].mass)/(dist*dist);
+			//console.log(force);
+			
+			//Degree
+			deg = Math.atan(Math.abs(bodyA[z].x-bodyA[i].x)/ Math.abs(bodyA[z].y-bodyA[i].y));
+			//Force on x and y
+			fx = force * Math.sin(deg);
+			fy = force * Math.cos(deg);
+			if (bodyA[i].x>bodyA[z].x){fx=-1*fx;}
+			if (bodyA[i].y>bodyA[z].y){fy=-1*fy;}
+			
+			bodyA[i].vx += fx/bodyA[i].mass;
+			bodyA[i].vy += fy/bodyA[i].mass;
+			
+			//if (i==1&&z==0){console.log(bodyA[i].movey);}
+		}
+	}
+}
+}
+
+window.addEventListener("keydown", checkKeyPressed, false);
+window.addEventListener("keyup", checkKeyReleased, false);
+function checkKeyPressed(evt) {
+	if (evt.keyCode == "90"){
+		zout=1; bxM-=50; byM-=50;
+	}
+	if (evt.keyCode == "88"){
+		zin=1; bxM+=50; byM+=50;
+	}
+	if (evt.keyCode == "39"){
+		bxM+=50;
+	}
+	if (evt.keyCode == "37"){
+		bxM-=50;
+	}
+	if (evt.keyCode == "38"){
+		byM-=50;
+	}
+	if (evt.keyCode == "40"){
+		byM+=50;
+	}
+}
+function checkKeyReleased(evt) {
+	if (evt.keyCode == "88"){
+		zin=0;
+	}
+	if (evt.keyCode == "90"){
+		zout=0;
+	}
+}
+
+canvas.addEventListener("mousemove", function(e) { 
+    var cRect = canvas.getBoundingClientRect();              // Gets the CSS positions along with width/height
+    canvasX = e.clientX - cRect.left;			// Subtract the 'left' of the canvas from the X/Y
+    canvasY = e.clientY - cRect.top;         	// positions to get make (0,0) the top left of the
+});
+
+var inA = []; 
+function clickfunc(){
+	inA=[];
+	inA.push(parseInt(document.getElementById("xvinput").value));
+	inA.push(parseInt(document.getElementById("yvinput").value));
+	inA.push(parseInt(document.getElementById("minput").value));
+	inA.push(document.getElementById("cinput").value);
+	console.log(inA);
+	bodyA.push(new body(canvasX+bx,canvasY+by,inA[2],inA[0],inA[1],inA[3]));
+	//bodyA.push(new body(canvasX,canvasY,10,2,-2,inA[3]));
+	document.getElementById("cfoct").innerHTML=String(cfocus+1)+"/"+String(bodyA.length);
+
+}
+
+function rset(){
+	bodyA=[]; cfocus=-1;
+}
+function rfocus(c){
+	if (c==1){cfocus++;}
+	if (c==-1){cfocus-=1;}
+	if (cfocus>bodyA.length-1){cfocus=0;}
+	if (cfocus<0){cfocus=bodyA.length-1;}
+	if (c==0){cfocus=-1;}
+	document.getElementById("cfoct").innerHTML=String(cfocus+1)+"/"+String(bodyA.length);
+}
+
+</script>
+
+<div class="form-row" style=" margin: auto;width: 50%; margin-top:10px; margin-right:200px;">
+	<textarea id="xvinput"  rows="2" cols="10" placeholder="x-velocity"></textarea>
+	<textarea id="yvinput"  rows="2" cols="10" placeholder="y-velocity"></textarea>
+	<textarea id="minput" rows="2" cols="10" placeholder="mass"></textarea>
+	<textarea id="cinput"  rows="2" cols="10" placeholder="color"></textarea>
+</div>
+
+<div class="form-row" style=" margin: auto;width: 50%; margin-top:10px; margin-right:200px;">
+	<button type="button" onclick="rset()">RESET</button>
+	<button type="button" onclick="rfocus(1)">+</button>
+	<button type="button" onclick="rfocus(-1)">-</button>
+	<button type="button" onclick="rfocus(0)">S</button>
+	<p1 id="cfoct">1/4</p1>
+</div>
+
+</html>
